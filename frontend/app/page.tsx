@@ -18,7 +18,7 @@ export default function Home() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-          <Link href="/dashboard">
+          <Link href="/register">
             <Button size="lg" className="w-full md:w-auto min-w-[200px]">
               Get Started
             </Button>

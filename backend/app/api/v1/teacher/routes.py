@@ -9,7 +9,7 @@ teacher_bp = Blueprint("teacher", __name__)
 @teacher_bp.route("/invite", methods=["POST"])
 @jwt_required()
 def invite_student():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     teacher = User.query.get(current_user_id)
 
     if not teacher or not teacher.is_teacher:

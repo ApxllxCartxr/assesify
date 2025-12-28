@@ -3,8 +3,29 @@
 import { Button } from "@/components/Button";
 import Link from "next/link";
 import { ArrowRight, Lock, Mail } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import api, { storeToken } from "@/lib/api";
 
 export default function LoginPage() {
+    const router = useRouter();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+        try {
+            const data = await api.login(email, password);
+            if (data.access_token) {
+                storeToken(data.access_token);
+                router.push("/dashboard");
+            }
+        } catch (err: any) {
+            setError(err?.msg || err?.message || "Login failed");
+        }
+    };
     return (
         <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
             {/* Left (Brand/Art) - Hidden on mobile */}
@@ -28,12 +49,14 @@ export default function LoginPage() {
                         <p className="text-slate-500 mt-2">Log in to continue your streak.</p>
                     </div>
 
-                    <div className="space-y-4">
+                    <form className="space-y-4" onSubmit={handleSubmit}>
                         <div className="space-y-2">
                             <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Email</label>
                             <div className="relative">
                                 <Mail className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     type="email"
                                     className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 focus:border-brand-blue outline-none transition-colors font-bold"
                                     placeholder="joey@friends.com"
@@ -45,19 +68,22 @@ export default function LoginPage() {
                             <div className="relative">
                                 <Lock className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     type="password"
                                     className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 focus:border-brand-blue outline-none transition-colors font-bold"
                                     placeholder="••••••••"
                                 />
                             </div>
                         </div>
-                    </div>
+                        {error && <p className="text-red-500 text-sm font-bold">{error}</p>}
 
-                    <Link href="/dashboard" className="block">
-                        <Button className="w-full" size="lg">
-                            Log In <ArrowRight className="w-5 h-5 ml-2" />
-                        </Button>
-                    </Link>
+                        <div>
+                            <Button type="submit" className="w-full" size="lg">
+                                Log In <ArrowRight className="w-5 h-5 ml-2" />
+                            </Button>
+                        </div>
+                    </form>
 
                     <div className="relative py-4">
                         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200 dark:border-slate-800"></div></div>

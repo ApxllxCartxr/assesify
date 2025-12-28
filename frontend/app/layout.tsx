@@ -25,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
+        suppressHydrationWarning={true}
         className={`${geist.variable} ${nunito.variable} antialiased font-nunito bg-surface-light text-surface-dark dark:bg-surface-dark dark:text-surface-light`}
       >
         {children}

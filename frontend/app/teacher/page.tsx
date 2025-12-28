@@ -5,10 +5,15 @@ import { Button } from "@/components/Button";
 import { Plus, Upload, Users, BarChart3, Folder, ChevronRight, MoreVertical } from "lucide-react";
 import { useState } from "react";
 import { TeacherUploadModal } from "@/components/TeacherUploadModal";
+import api, { getStoredToken } from "@/lib/api";
 
 export default function TeacherDashboard() {
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+    const [isInviteOpen, setIsInviteOpen] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState("");
+    const [inviteName, setInviteName] = useState("");
+    const [inviteMsg, setInviteMsg] = useState<string | null>(null);
 
     const classes = [
         {
@@ -48,6 +53,25 @@ export default function TeacherDashboard() {
         setIsUploadOpen(true);
     };
 
+    const handleInviteSubmit = async (e: React.FormEvent) => {
+        e?.preventDefault();
+        setInviteMsg(null);
+        try {
+            const token = getStoredToken();
+            if (!token) {
+                setInviteMsg("You must be logged in as a teacher to invite students.");
+                return;
+            }
+            const res = await api.inviteStudent(token, { email: inviteEmail, full_name: inviteName });
+            setInviteMsg(res?.msg || "Invitation sent successfully");
+            setInviteEmail("");
+            setInviteName("");
+            setIsInviteOpen(false);
+        } catch (err: any) {
+            setInviteMsg(err?.msg || err?.message || "Invite failed");
+        }
+    };
+
     return (
         <div className="space-y-8 pb-20">
             <TeacherUploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} />
@@ -60,11 +84,36 @@ export default function TeacherDashboard() {
                     </h1>
                     <p className="text-slate-500">Manage {classes.length} active classes.</p>
                 </div>
-                <Button>
-                    <Plus className="w-5 h-5 mr-2" />
-                    Create New Class
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button onClick={() => setIsInviteOpen((s) => !s)} variant={isInviteOpen ? "secondary" : undefined}>
+                        Invite Student
+                    </Button>
+                    <Button>
+                        <Plus className="w-5 h-5 mr-2" />
+                        Create New Class
+                    </Button>
+                </div>
             </div>
+
+            {isInviteOpen && (
+                <div className="bg-slate-50 dark:bg-zinc-900 p-6 rounded-lg border border-slate-200 dark:border-zinc-800">
+                    <form className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end" onSubmit={handleInviteSubmit}>
+                        <div className="md:col-span-1">
+                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Full name</label>
+                            <input value={inviteName} onChange={(e) => setInviteName(e.target.value)} className="w-full px-3 py-2 rounded-lg border-2 border-slate-200 dark:border-zinc-800" />
+                        </div>
+                        <div className="md:col-span-1">
+                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Email</label>
+                            <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} type="email" className="w-full px-3 py-2 rounded-lg border-2 border-slate-200 dark:border-zinc-800" />
+                        </div>
+                        <div className="md:col-span-1 flex items-center gap-2">
+                            <Button type="submit">Send Invite</Button>
+                            <Button variant="ghost" onClick={() => setIsInviteOpen(false)}>Cancel</Button>
+                        </div>
+                    </form>
+                    {inviteMsg && <p className="mt-3 text-sm font-bold">{inviteMsg}</p>}
+                </div>
+            )}
 
             {/* Overview Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -142,3 +191,4 @@ export default function TeacherDashboard() {
         </div>
     );
 }
+
