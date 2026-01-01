@@ -1,0 +1,17 @@
+student_id,topic,difficulty,total_questions,correct_answers,time_taken_seconds,attempt_date
+s1,algebra,easy,10,8,300,2025-10-01
+s1,algebra,medium,10,6,360,2025-10-10
+s1,geometry,easy,10,7,320,2025-10-15
+s1,algebra,hard,10,5,420,2025-10-25
+s2,algebra,easy,10,9,280,2025-10-02
+s2,geometry,easy,10,8,310,2025-10-11
+s2,geometry,medium,10,5,390,2025-10-20
+s3,algebra,medium,10,4,450,2025-09-30
+s3,geometry,hard,10,2,600,2025-10-05
+s3,calculus,hard,10,3,580,2025-10-22
+s4,algebra,easy,10,10,250,2025-10-03
+s4,algebra,medium,10,9,300,2025-10-10
+s4,calculus,medium,10,6,420,2025-10-21
+s5,calculus,easy,10,7,340,2025-10-01
+s5,calculus,medium,10,8,330,2025-10-12
+s5,calculus,hard,10,6,480,2025-10-25
