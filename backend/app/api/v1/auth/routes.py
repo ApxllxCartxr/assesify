@@ -48,6 +48,10 @@ def update_profile():
     data = request.json
     if "full_name" in data:
         user.full_name = data["full_name"]
+    if "major" in data:
+        user.major = data["major"]
+    if "location" in data:
+        user.location = data["location"]
         
     db.session.commit()
     
@@ -57,7 +61,9 @@ def update_profile():
             "id": user.id,
             "full_name": user.full_name,
             "email": user.email,
-            "is_teacher": user.is_teacher
+            "is_teacher": user.is_teacher,
+            "major": user.major,
+            "location": user.location
         }
     }), 200
 
@@ -74,5 +80,7 @@ def get_profile():
         "id": user.id,
         "full_name": user.full_name,
         "email": user.email,
-        "is_teacher": user.is_teacher
+        "is_teacher": user.is_teacher,
+        "major": user.major,
+        "location": user.location
     }), 200

@@ -119,11 +119,11 @@ const api = {
         return handleResponse(response);
     },
 
-    updateProfile: async (full_name: string) => {
+    updateProfile: async (data: { full_name?: string; major?: string; location?: string }) => {
         const response = await fetch(`${API_URL}/auth/update-profile`, {
             method: "PUT",
             headers: getHeaders(),
-            body: JSON.stringify({ full_name }),
+            body: JSON.stringify(data),
         });
         return handleResponse(response);
     },

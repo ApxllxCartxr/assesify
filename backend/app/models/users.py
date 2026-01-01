@@ -12,6 +12,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     is_teacher = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
+    major = db.Column(db.String(100), nullable=True)
+    location = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):

@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
+import Link from "next/link";
 import { ProgressBar } from "@/components/ProgressBar";
 import {
     Flame,
@@ -16,17 +17,27 @@ import {
     TrendingUp,
     MapPin,
     Calendar,
-    BookOpen
+    BookOpen,
+    LogOut
 } from "lucide-react";
 
 import { useState, useEffect } from "react";
-import api, { getUser, storeUser } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import api, { getUser, storeUser, removeToken } from "@/lib/api";
 
 export default function ProfilePage() {
+    const router = useRouter();
     const [user, setUser] = useState<any>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState("");
+    const [editMajor, setEditMajor] = useState("");
+    const [editLocation, setEditLocation] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    const handleSwitchUser = () => {
+        removeToken();
+        router.push("/login");
+    };
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -34,12 +45,16 @@ export default function ProfilePage() {
             if (storedUser) {
                 setUser(storedUser);
                 setEditName(storedUser.full_name);
+                setEditMajor(storedUser.major || "");
+                setEditLocation(storedUser.location || "");
             }
 
             try {
                 const freshUser = await api.getProfile();
                 setUser(freshUser);
                 setEditName(freshUser.full_name);
+                setEditMajor(freshUser.major || "");
+                setEditLocation(freshUser.location || "");
                 storeUser(freshUser); // Update local storage with fresh data
             } catch (err) {
                 console.error("Failed to fetch profile", err);
@@ -52,9 +67,13 @@ export default function ProfilePage() {
     const handleSaveProfile = async () => {
         setIsLoading(true);
         try {
-            const res = await api.updateProfile(editName);
+            const res = await api.updateProfile({
+                full_name: editName,
+                major: editMajor,
+                location: editLocation
+            });
             // res should contain the updated user based on backend code
-            const updatedUser = res.user || { ...user, full_name: editName };
+            const updatedUser = res.user || { ...user, full_name: editName, major: editMajor, location: editLocation };
             storeUser(updatedUser);
             setUser(updatedUser);
             setIsEditing(false);
@@ -89,31 +108,51 @@ export default function ProfilePage() {
                 <div className="text-center md:text-left space-y-3 flex-1">
                     <div>
                         {isEditing ? (
-                            <div className="flex items-center gap-2 justify-center md:justify-start">
+                            <div className="flex flex-col gap-3 justify-center md:justify-start max-w-md">
                                 <input
                                     value={editName}
                                     onChange={(e) => setEditName(e.target.value)}
-                                    className="text-4xl font-bold font-geist text-slate-900 dark:text-white bg-transparent border-b-2 border-brand-blue focus:outline-none w-full max-w-md"
+                                    placeholder="Full Name"
+                                    className="text-4xl font-bold font-geist text-slate-900 dark:text-white bg-transparent border-b-2 border-brand-blue focus:outline-none w-full"
                                     autoFocus
                                 />
+                                <div className="flex gap-2">
+                                    <input
+                                        value={editLocation}
+                                        onChange={(e) => setEditLocation(e.target.value)}
+                                        placeholder="Location (e.g. New York, USA)"
+                                        className="text-sm font-bold text-slate-500 bg-transparent border-b border-brand-blue focus:outline-none flex-1"
+                                    />
+                                </div>
                             </div>
                         ) : (
-                            <h1 className="text-4xl font-bold font-geist text-slate-900 dark:text-white">
-                                {user?.full_name || "User"}
-                            </h1>
+                            <>
+                                <h1 className="text-4xl font-bold font-geist text-slate-900 dark:text-white">
+                                    {user?.full_name || "User"}
+                                </h1>
+                                <p className="text-slate-500 font-bold uppercase tracking-wider text-sm flex items-center justify-center md:justify-start gap-2 mt-1">
+                                    <MapPin className="w-4 h-4" /> {user?.location || "Location not set"} • Joined Dec 2025
+                                </p>
+                            </>
                         )}
-                        <p className="text-slate-500 font-bold uppercase tracking-wider text-sm flex items-center justify-center md:justify-start gap-2 mt-1">
-                            <MapPin className="w-4 h-4" /> New York, USA • Joined Dec 2025
-                        </p>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
                         <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-800 font-bold text-slate-600 dark:text-slate-300 text-sm">
                             <Globe className="w-4 h-4 text-brand-blue" /> English (Native)
                         </span>
-                        <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-800 font-bold text-slate-600 dark:text-slate-300 text-sm">
-                            <Calculator className="w-4 h-4 text-brand-red" /> Math (Major)
-                        </span>
+                        {isEditing ? (
+                            <input
+                                value={editMajor}
+                                onChange={(e) => setEditMajor(e.target.value)}
+                                placeholder="Major / Profession"
+                                className="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-800 border-2 border-brand-blue/30 focus:border-brand-blue outline-none font-bold text-slate-600 dark:text-slate-300 text-sm"
+                            />
+                        ) : (
+                            <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-800 font-bold text-slate-600 dark:text-slate-300 text-sm">
+                                <Calculator className="w-4 h-4 text-brand-red" /> {user?.major || "Major not set"}
+                            </span>
+                        )}
                     </div>
                 </div>
                 <div className="flex justify-center md:justify-end gap-3">
@@ -127,9 +166,15 @@ export default function ProfilePage() {
                             </Button>
                         </>
                     ) : (
-                        <Button variant="outline" onClick={() => setIsEditing(true)}>
-                            Edit Profile
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsEditing(true)}>
+                                Edit Profile
+                            </Button>
+                            <Button variant="ghost" className="text-brand-red hover:bg-brand-red/10" onClick={handleSwitchUser}>
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Switch User
+                            </Button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -227,7 +272,9 @@ export default function ProfilePage() {
                                         <p className="text-xs text-slate-500 uppercase font-bold">{topic.class}</p>
                                     </div>
                                 </div>
-                                <Button size="sm" variant="outline" className="text-xs">Practice</Button>
+                                <Link href="/learn">
+                                    <Button size="sm" variant="outline" className="text-xs">Practice</Button>
+                                </Link>
                             </div>
                         ))}
                     </Card>
