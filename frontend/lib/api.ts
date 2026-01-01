@@ -117,6 +117,23 @@ const api = {
             body: JSON.stringify(data),
         });
         return handleResponse(response);
+    },
+
+    updateProfile: async (full_name: string) => {
+        const response = await fetch(`${API_URL}/auth/update-profile`, {
+            method: "PUT",
+            headers: getHeaders(),
+            body: JSON.stringify({ full_name }),
+        });
+        return handleResponse(response);
+    },
+
+    getProfile: async () => {
+        const response = await fetch(`${API_URL}/auth/profile`, {
+            method: "GET",
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
     }
 };
 

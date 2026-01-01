@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app.models.users import db, User
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.core.security import hash_password
 
 auth_bp = Blueprint("auth", __name__)
@@ -35,3 +35,44 @@ def login():
         "is_teacher": user.is_teacher,
         "full_name": user.full_name
     })
+
+@auth_bp.route("/update-profile", methods=["PUT"])
+@jwt_required()
+def update_profile():
+    current_user_id = get_jwt_identity()
+    user = User.query.get(int(current_user_id))
+    
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+        
+    data = request.json
+    if "full_name" in data:
+        user.full_name = data["full_name"]
+        
+    db.session.commit()
+    
+    return jsonify({
+        "msg": "Profile updated successfully",
+        "user": {
+            "id": user.id,
+            "full_name": user.full_name,
+            "email": user.email,
+            "is_teacher": user.is_teacher
+        }
+    }), 200
+
+@auth_bp.route("/profile", methods=["GET"])
+@jwt_required()
+def get_profile():
+    current_user_id = get_jwt_identity()
+    user = User.query.get(int(current_user_id))
+    
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+        
+    return jsonify({
+        "id": user.id,
+        "full_name": user.full_name,
+        "email": user.email,
+        "is_teacher": user.is_teacher
+    }), 200

@@ -19,7 +19,52 @@ import {
     BookOpen
 } from "lucide-react";
 
+import { useState, useEffect } from "react";
+import api, { getUser, storeUser } from "@/lib/api";
+
 export default function ProfilePage() {
+    const [user, setUser] = useState<any>(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editName, setEditName] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            const storedUser = getUser();
+            if (storedUser) {
+                setUser(storedUser);
+                setEditName(storedUser.full_name);
+            }
+
+            try {
+                const freshUser = await api.getProfile();
+                setUser(freshUser);
+                setEditName(freshUser.full_name);
+                storeUser(freshUser); // Update local storage with fresh data
+            } catch (err) {
+                console.error("Failed to fetch profile", err);
+            }
+        };
+
+        fetchUserData();
+    }, []);
+
+    const handleSaveProfile = async () => {
+        setIsLoading(true);
+        try {
+            const res = await api.updateProfile(editName);
+            // res should contain the updated user based on backend code
+            const updatedUser = res.user || { ...user, full_name: editName };
+            storeUser(updatedUser);
+            setUser(updatedUser);
+            setIsEditing(false);
+        } catch (err) {
+            console.error("Failed to update profile", err);
+            alert("Failed to update profile");
+        } finally {
+            setIsLoading(false);
+        }
+    };
     const classPerformance = [
         { name: "Intro to CS", teacher: "Dr. Geller", score: 92, status: "strong" },
         { name: "Adv. Calculus", teacher: "Prof. Bing", score: 74, status: "average" },
@@ -36,16 +81,27 @@ export default function ProfilePage() {
             {/* Profile Header */}
             <div className="flex flex-col md:flex-row items-center gap-8 pb-8 border-b-2 border-slate-200 dark:border-slate-800">
                 <div className="w-32 h-32 bg-brand-blue rounded-full border-4 border-white dark:border-zinc-800 shadow-xl flex items-center justify-center text-5xl font-bold text-white relative">
-                    J
+                    {user?.full_name?.charAt(0) || "U"}
                     <div className="absolute bottom-0 right-0 bg-brand-green p-2 rounded-full border-4 border-white dark:border-zinc-800">
                         <Target className="w-5 h-5 text-white" />
                     </div>
                 </div>
-                <div className="text-center md:text-left space-y-3">
+                <div className="text-center md:text-left space-y-3 flex-1">
                     <div>
-                        <h1 className="text-4xl font-bold font-geist text-slate-900 dark:text-white">
-                            Joey Tribbiani
-                        </h1>
+                        {isEditing ? (
+                            <div className="flex items-center gap-2 justify-center md:justify-start">
+                                <input
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    className="text-4xl font-bold font-geist text-slate-900 dark:text-white bg-transparent border-b-2 border-brand-blue focus:outline-none w-full max-w-md"
+                                    autoFocus
+                                />
+                            </div>
+                        ) : (
+                            <h1 className="text-4xl font-bold font-geist text-slate-900 dark:text-white">
+                                {user?.full_name || "User"}
+                            </h1>
+                        )}
                         <p className="text-slate-500 font-bold uppercase tracking-wider text-sm flex items-center justify-center md:justify-start gap-2 mt-1">
                             <MapPin className="w-4 h-4" /> New York, USA • Joined Dec 2025
                         </p>
@@ -60,8 +116,21 @@ export default function ProfilePage() {
                         </span>
                     </div>
                 </div>
-                <div className="flex-1 flex justify-center md:justify-end gap-3">
-                    <Button variant="outline">Edit</Button>
+                <div className="flex justify-center md:justify-end gap-3">
+                    {isEditing ? (
+                        <>
+                            <Button onClick={handleSaveProfile} disabled={isLoading}>
+                                {isLoading ? "Saving..." : "Save Changes"}
+                            </Button>
+                            <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={isLoading}>
+                                Cancel
+                            </Button>
+                        </>
+                    ) : (
+                        <Button variant="outline" onClick={() => setIsEditing(true)}>
+                            Edit Profile
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -122,8 +191,8 @@ export default function ProfilePage() {
                                         <span className="text-xs text-slate-500">{cls.teacher}</span>
                                     </div>
                                     <span className={`text-xs font-bold uppercase px-2 py-1 rounded-lg ${cls.status === 'strong' ? 'bg-brand-green/10 text-brand-green' :
-                                            cls.status === 'average' ? 'bg-brand-yellow/10 text-brand-yellow-dark' :
-                                                'bg-brand-red/10 text-brand-red'
+                                        cls.status === 'average' ? 'bg-brand-yellow/10 text-brand-yellow-dark' :
+                                            'bg-brand-red/10 text-brand-red'
                                         }`}>
                                         {cls.score}%
                                     </span>
