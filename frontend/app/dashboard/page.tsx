@@ -1,17 +1,33 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { ArrowRight, BookOpen, Clock, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { ProgressBar } from "@/components/ProgressBar";
+import { JoinClassModal } from "@/components/JoinClassModal";
+import api from "@/lib/api";
 
 export default function DashboardPage() {
-    const enrolledClasses = [
-        { id: 1, name: "Introduction to Computer Science", section: "CS-101 (A)", teacher: "Dr. Geller", progress: 85, color: "bg-brand-blue" },
-        { id: 2, name: "Advanced Calculus", section: "MATH-202 (B)", teacher: "Prof. Bing", progress: 42, color: "bg-brand-red" },
-        { id: 3, name: "World History", section: "HIST-110 (A)", teacher: "Mrs. Buffay", progress: 90, color: "bg-brand-yellow" },
-    ];
+    const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+    const [classes, setClasses] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchClasses = async () => {
+        try {
+            const data = await api.getClasses();
+            setClasses(data);
+        } catch (err) {
+            console.error("Failed to fetch classes", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchClasses();
+    }, []);
 
     const pendingQuizzes = [
         { id: 101, class: "Advanced Calculus", title: "Derivatives Quiz", due: "Tomorrow", duration: "15 min", priority: "high" },
@@ -20,15 +36,21 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-10 pb-20">
+            <JoinClassModal
+                isOpen={isJoinModalOpen}
+                onClose={() => setIsJoinModalOpen(false)}
+                onSuccess={fetchClasses}
+            />
+
             {/* Welcome Section */}
             <div className="flex justify-between items-end">
                 <div>
                     <h1 className="text-3xl font-bold font-geist text-slate-900 dark:text-white">
-                        Welcome back, Joey! 👋
+                        Welcome back! 👋
                     </h1>
-                    <p className="text-slate-500 mt-1">You have 2 quizzes pending this week.</p>
+                    <p className="text-slate-500 mt-1">You have {pendingQuizzes.length} quizzes pending this week.</p>
                 </div>
-                <Button>
+                <Button onClick={() => setIsJoinModalOpen(true)}>
                     <ArrowRight className="w-5 h-5 mr-2" />
                     Join New Class
                 </Button>
@@ -68,40 +90,48 @@ export default function DashboardPage() {
                     <BookOpen className="w-5 h-5 text-brand-green" />
                     My Classes
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {enrolledClasses.map((cls) => (
-                        <Card key={cls.id} className="group hover:-translate-y-1 transition-transform duration-300" noPadding>
-                            <div className={`h-24 ${cls.color} relative overflow-hidden`}>
-                                <div className="absolute inset-0 bg-black/10"></div>
-                                {/* Pattern overlay could go here */}
-                                <div className="absolute bottom-4 left-4 text-white">
-                                    <p className="text-xs font-bold uppercase opacity-90">{cls.section}</p>
-                                    <h3 className="text-lg font-bold font-geist leading-tight">{cls.name}</h3>
-                                </div>
-                            </div>
-                            <div className="p-4 space-y-4">
-                                <div className="flex justify-between text-sm text-slate-500">
-                                    <span>{cls.teacher}</span>
-                                    <span className="font-bold text-brand-blue">{cls.progress}% Avg.</span>
-                                </div>
-                                {/* Progress within the class (e.g. syllabus completion) */}
-                                <div className="space-y-1">
-                                    <div className="flex justify-between text-xs font-bold text-slate-400">
-                                        <span>Course Progress</span>
-                                        <span>{cls.progress}%</span>
+                {isLoading ? (
+                    <div className="text-slate-500">Loading classes...</div>
+                ) : classes.length === 0 ? (
+                    <div className="text-center p-8 border-2 border-dashed border-slate-200 rounded-xl">
+                        <p className="text-slate-500 mb-4">You haven't joined any classes yet.</p>
+                        <Button variant="outline" onClick={() => setIsJoinModalOpen(true)}>Join your first class</Button>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {classes.map((cls) => (
+                            <Card key={cls.id} className="group hover:-translate-y-1 transition-transform duration-300" noPadding>
+                                <div className={`h-24 ${cls.color || 'bg-brand-blue'} relative overflow-hidden`}>
+                                    <div className="absolute inset-0 bg-black/10"></div>
+                                    <div className="absolute bottom-4 left-4 text-white">
+                                        <p className="text-xs font-bold uppercase opacity-90">{cls.section}</p>
+                                        <h3 className="text-lg font-bold font-geist leading-tight">{cls.name}</h3>
                                     </div>
-                                    <ProgressBar value={cls.progress} className="h-2" />
                                 </div>
+                                <div className="p-4 space-y-4">
+                                    <div className="flex justify-between text-sm text-slate-500">
+                                        <span>{cls.teacher}</span>
+                                        {/* Placeholder progress */}
+                                        <span className="font-bold text-brand-blue">0% Avg.</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-xs font-bold text-slate-400">
+                                            <span>Course Progress</span>
+                                            <span>0%</span>
+                                        </div>
+                                        <ProgressBar value={0} className="h-2" />
+                                    </div>
 
-                                <Link href={`/class/${cls.id}`}>
-                                    <Button variant="outline" size="sm" className="w-full">
-                                        View Class
-                                    </Button>
-                                </Link>
-                            </div>
-                        </Card>
-                    ))}
-                </div>
+                                    <Link href={`/class/${cls.id}`}>
+                                        <Button variant="outline" size="sm" className="w-full">
+                                            View Class
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                )}
             </section>
         </div>
     );

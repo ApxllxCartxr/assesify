@@ -1,17 +1,30 @@
+"use client";
+
 import Link from "next/link";
 import { Home, BookOpen, GraduationCap, Settings, User } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { useEffect, useState } from "react";
+import { getUser } from "@/lib/api";
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
 export function Sidebar({ className }: { className?: string }) {
+    const [isTeacher, setIsTeacher] = useState(false);
+
+    useEffect(() => {
+        const user = getUser();
+        if (user && user.is_teacher) {
+            setIsTeacher(true);
+        }
+    }, []);
+
     const navItems = [
         { label: "Dashboard", href: "/dashboard", icon: Home, color: "text-brand-blue" },
         { label: "Learn", href: "/learn", icon: BookOpen, color: "text-brand-green" },
-        { label: "Teacher", href: "/teacher", icon: GraduationCap, color: "text-brand-red" },
+        ...(isTeacher ? [{ label: "Teacher", href: "/teacher", icon: GraduationCap, color: "text-brand-red" }] : []),
         { label: "Profile", href: "/profile", icon: User, color: "text-brand-yellow" },
         { label: "Settings", href: "/settings", icon: Settings, color: "text-slate-400" },
     ];

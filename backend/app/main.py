@@ -12,6 +12,7 @@ from app.core.config import Config
 from app.models.users import db
 from app.api.v1.auth.routes import auth_bp
 from app.api.v1.teacher.routes import teacher_bp
+from app.api.v1.classes.routes import classes_bp
 
 def create_app():
     app = Flask(__name__)
@@ -24,6 +25,7 @@ def create_app():
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(teacher_bp, url_prefix="/api/teacher")
+    app.register_blueprint(classes_bp, url_prefix="/api/classes")
 
     @app.route("/")
     def home():

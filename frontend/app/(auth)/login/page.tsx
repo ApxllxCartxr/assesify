@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import api, { storeToken } from "@/lib/api";
+import api, { storeToken, storeUser } from "@/lib/api";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -20,6 +20,7 @@ export default function LoginPage() {
             const data = await api.login(email, password);
             if (data.access_token) {
                 storeToken(data.access_token);
+                storeUser(data);
                 router.push("/dashboard");
             }
         } catch (err: any) {

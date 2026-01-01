@@ -5,7 +5,7 @@ import { Button } from "@/components/Button";
 import { Plus, Upload, Users, BarChart3, Folder, ChevronRight, MoreVertical } from "lucide-react";
 import { useState } from "react";
 import { TeacherUploadModal } from "@/components/TeacherUploadModal";
-import api, { getStoredToken } from "@/lib/api";
+import api, { getToken } from "@/lib/api";
 
 export default function TeacherDashboard() {
     const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -57,7 +57,7 @@ export default function TeacherDashboard() {
         e?.preventDefault();
         setInviteMsg(null);
         try {
-            const token = getStoredToken();
+            const token = getToken();
             if (!token) {
                 setInviteMsg("You must be logged in as a teacher to invite students.");
                 return;
