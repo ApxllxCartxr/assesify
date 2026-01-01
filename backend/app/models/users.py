@@ -14,7 +14,30 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     major = db.Column(db.String(100), nullable=True)
     location = db.Column(db.String(100), nullable=True)
+    
+    # Gamification fields
+    streak = db.Column(db.Integer, default=0)
+    diamonds = db.Column(db.Integer, default=0)
+    health = db.Column(db.Integer, default=5)
+    profile_pic = db.Column(db.String(255), nullable=True)
+    last_active_date = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "full_name": self.full_name,
+            "is_teacher": self.is_teacher,
+            "major": self.major,
+            "location": self.location,
+            "profile_pic": self.profile_pic,
+            "streak": self.streak,
+            "diamonds": self.diamonds,
+            "health": self.health,
+            "last_active_date": self.last_active_date.isoformat() if self.last_active_date else None,
+            "created_at": self.created_at.isoformat()
+        }
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

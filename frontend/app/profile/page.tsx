@@ -16,14 +16,14 @@ import {
     Star,
     TrendingUp,
     MapPin,
-    Calendar,
-    BookOpen,
-    LogOut
+    LogOut,
+    BookOpen
 } from "lucide-react";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import api, { getUser, storeUser, removeToken } from "@/lib/api";
+import api, { getUser, storeUser, removeToken, API_URL } from "@/lib/api";
+import { TopicsToReview } from "@/components/TopicsToReview";
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -55,7 +55,7 @@ export default function ProfilePage() {
                 setEditName(freshUser.full_name);
                 setEditMajor(freshUser.major || "");
                 setEditLocation(freshUser.location || "");
-                storeUser(freshUser); // Update local storage with fresh data
+                storeUser(freshUser);
             } catch (err) {
                 console.error("Failed to fetch profile", err);
             }
@@ -72,7 +72,6 @@ export default function ProfilePage() {
                 major: editMajor,
                 location: editLocation
             });
-            // res should contain the updated user based on backend code
             const updatedUser = res.user || { ...user, full_name: editName, major: editMajor, location: editLocation };
             storeUser(updatedUser);
             setUser(updatedUser);
@@ -84,23 +83,60 @@ export default function ProfilePage() {
             setIsLoading(false);
         }
     };
+
     const classPerformance = [
         { name: "Intro to CS", teacher: "Dr. Geller", score: 92, status: "strong" },
         { name: "Adv. Calculus", teacher: "Prof. Bing", score: 74, status: "average" },
         { name: "World History", teacher: "Mrs. Buffay", score: 88, status: "strong" },
     ];
 
-    const weakTopics = [
-        { topic: "Differential Calculus", class: "Adv. Calculus", mastery: 35 },
-        { topic: "Integration Rules", class: "Adv. Calculus", mastery: 42 },
-    ];
-
     return (
         <div className="space-y-8 pb-20">
             {/* Profile Header */}
             <div className="flex flex-col md:flex-row items-center gap-8 pb-8 border-b-2 border-slate-200 dark:border-slate-800">
-                <div className="w-32 h-32 bg-brand-blue rounded-full border-4 border-white dark:border-zinc-800 shadow-xl flex items-center justify-center text-5xl font-bold text-white relative">
-                    {user?.full_name?.charAt(0) || "U"}
+                <div className="relative group">
+                    <input
+                        type="file"
+                        id="avatarInput"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                                const formData = new FormData();
+                                formData.append("file", file);
+                                try {
+                                    setIsLoading(true);
+                                    const res = await api.uploadAvatar(formData);
+                                    const updatedUser = { ...user, profile_pic: res.profile_pic };
+                                    setUser(updatedUser);
+                                    storeUser(updatedUser);
+                                } catch (err) {
+                                    console.error("Upload failed", err);
+                                    alert("Failed to upload avatar");
+                                } finally {
+                                    setIsLoading(false);
+                                }
+                            }
+                        }}
+                    />
+                    <div
+                        onClick={() => document.getElementById('avatarInput')?.click()}
+                        className="w-32 h-32 bg-brand-blue rounded-full border-4 border-white dark:border-zinc-800 shadow-xl flex items-center justify-center text-5xl font-bold text-white relative overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                    >
+                        {user?.profile_pic ? (
+                            <img
+                                src={`${API_URL}/auth/avatars/${user.profile_pic.split('/').pop()}`}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            user?.full_name?.charAt(0) || "U"
+                        )}
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <TrendingUp className="w-8 h-8 text-white rotate-45" /> {/* Camera-like swap */}
+                        </div>
+                    </div>
                     <div className="absolute bottom-0 right-0 bg-brand-green p-2 rounded-full border-4 border-white dark:border-zinc-800">
                         <Target className="w-5 h-5 text-white" />
                     </div>
@@ -180,44 +216,46 @@ export default function ProfilePage() {
             </div>
 
             {/* Stats Grid */}
-            <section>
-                <h2 className="text-xl font-bold font-geist mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-brand-blue" />
-                    Activity Stats
-                </h2>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Card className="flex flex-col items-center justify-center gap-3 p-6" noPadding>
-                        <Flame className="w-8 h-8 text-brand-red fill-current" />
-                        <div className="text-center">
-                            <span className="text-2xl font-bold block font-geist">12</span>
-                            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Day Streak</span>
-                        </div>
-                    </Card>
-                    <Card className="flex flex-col items-center justify-center gap-3 p-6" noPadding>
-                        <Zap className="w-8 h-8 text-brand-yellow fill-current" />
-                        <div className="text-center">
-                            <span className="text-2xl font-bold block font-geist">1450</span>
-                            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Total XP</span>
-                        </div>
-                    </Card>
-                    <Card className="flex flex-col items-center justify-center gap-3 p-6" noPadding>
-                        <Trophy className="w-8 h-8 text-brand-yellow" />
-                        <div className="text-center">
-                            <span className="text-2xl font-bold block font-geist">Gold</span>
-                            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">League</span>
-                        </div>
-                    </Card>
-                    <Card className="flex flex-col items-center justify-center gap-3 p-6" noPadding>
-                        <Target className="w-8 h-8 text-brand-blue" />
-                        <div className="text-center">
-                            <span className="text-2xl font-bold block font-geist">88%</span>
-                            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Accuracy</span>
-                        </div>
-                    </Card>
-                </div>
-            </section>
+            {!user?.is_teacher && (
+                <section>
+                    <h2 className="text-xl font-bold font-geist mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-brand-blue" />
+                        Activity Stats
+                    </h2>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <Card className="flex flex-col items-center justify-center gap-3 p-6" noPadding>
+                            <Flame className="w-8 h-8 text-brand-red fill-current" />
+                            <div className="text-center">
+                                <span className="text-2xl font-bold block font-geist">{user?.streak || 0}</span>
+                                <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Day Streak</span>
+                            </div>
+                        </Card>
+                        <Card className="flex flex-col items-center justify-center gap-3 p-6" noPadding>
+                            <Zap className="w-8 h-8 text-brand-blue fill-current" />
+                            <div className="text-center">
+                                <span className="text-2xl font-bold block font-geist">{user?.diamonds || 0}</span>
+                                <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Diamonds</span>
+                            </div>
+                        </Card>
+                        <Card className="flex flex-col items-center justify-center gap-3 p-6" noPadding>
+                            <Trophy className="w-8 h-8 text-brand-yellow" />
+                            <div className="text-center">
+                                <span className="text-2xl font-bold block font-geist">❤️ {user?.health || 5}</span>
+                                <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Health</span>
+                            </div>
+                        </Card>
+                        <Card className="flex flex-col items-center justify-center gap-3 p-6" noPadding>
+                            <Target className="w-8 h-8 text-brand-blue" />
+                            <div className="text-center">
+                                <span className="text-2xl font-bold block font-geist">88%</span>
+                                <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Accuracy</span>
+                            </div>
+                        </Card>
+                    </div>
+                </section>
+            )}
 
-            {/* Performance & Weakness Analysis */}
+            {/* Performance & Topics */}
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Class Performance */}
                 <div className="space-y-4">
@@ -252,75 +290,36 @@ export default function ProfilePage() {
                     </Card>
                 </div>
 
-                {/* Topics for Review (Weaknesses) */}
+                {/* Topics for Review */}
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold font-geist flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-brand-red transform rotate-180" />
-                            Topics to Review
-                        </h2>
-                    </div>
-                    <Card className="p-0 overflow-hidden" noPadding>
-                        {weakTopics.map((topic, i) => (
-                            <div key={topic.topic} className={`p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors ${i !== weakTopics.length - 1 ? 'border-b-2 border-slate-100 dark:border-slate-800' : ''}`}>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-brand-red/10 flex items-center justify-center text-brand-red">
-                                        <AlertCircleIcon className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold font-geist text-slate-800 dark:text-slate-200">{topic.topic}</p>
-                                        <p className="text-xs text-slate-500 uppercase font-bold">{topic.class}</p>
-                                    </div>
-                                </div>
-                                <Link href="/learn">
-                                    <Button size="sm" variant="outline" className="text-xs">Practice</Button>
-                                </Link>
-                            </div>
-                        ))}
-                    </Card>
+                    <TopicsToReview limit={5} />
                 </div>
             </section>
 
-            {/* Achievements (Icon based) */}
-            <section className="space-y-4">
-                <h2 className="text-xl font-bold font-geist flex items-center gap-2">
-                    <Award className="w-5 h-5 text-brand-yellow" />
-                    Achievements
-                </h2>
-                <Card className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {[
-                        { icon: Medal, label: "Level 5", color: "text-brand-yellow", bg: "bg-brand-yellow" },
-                        { icon: Star, label: "Sharpshooter", color: "text-brand-blue", bg: "bg-brand-blue" },
-                        { icon: Flame, label: "7 Day Streak", color: "text-brand-red", bg: "bg-brand-red" },
-                        { icon: Zap, label: "Speed Demon", color: "text-brand-green", bg: "bg-brand-green" },
-                    ].map((achievement, i) => (
-                        <div key={i} className="aspect-square flex flex-col items-center justify-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer group">
-                            <div className={`w-14 h-14 ${achievement.bg} rounded-2xl shadow-lg flex items-center justify-center text-white border-b-4 border-black/20 group-hover:scale-110 transition-transform`}>
-                                <achievement.icon className="w-7 h-7 fill-white/20" />
+            {/* Achievements */}
+            {!user?.is_teacher && (
+                <section className="space-y-4">
+                    <h2 className="text-xl font-bold font-geist flex items-center gap-2">
+                        <Award className="w-5 h-5 text-brand-yellow" />
+                        Achievements
+                    </h2>
+                    <Card className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {[
+                            { icon: Medal, label: "Level 5", color: "text-brand-yellow", bg: "bg-brand-yellow" },
+                            { icon: Star, label: "Sharpshooter", color: "text-brand-blue", bg: "bg-brand-blue" },
+                            { icon: Flame, label: "7 Day Streak", color: "text-brand-red", bg: "bg-brand-red" },
+                            { icon: Zap, label: "Speed Demon", color: "text-brand-green", bg: "bg-brand-green" },
+                        ].map((achievement, i) => (
+                            <div key={i} className="aspect-square flex flex-col items-center justify-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer group">
+                                <div className={`w-14 h-14 ${achievement.bg} rounded-2xl shadow-lg flex items-center justify-center text-white border-b-4 border-black/20 group-hover:scale-110 transition-transform`}>
+                                    <achievement.icon className="w-7 h-7 fill-white/20" />
+                                </div>
+                                <span className="text-xs font-bold text-center text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200">{achievement.label}</span>
                             </div>
-                            <span className="text-xs font-bold text-center text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200">{achievement.label}</span>
-                        </div>
-                    ))}
-                    {/* Locked slots */}
-                    {[1, 2].map((i) => (
-                        <div key={`locked-${i}`} className="aspect-square flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-                            <div className="w-14 h-14 bg-slate-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-slate-300">
-                                <Award className="w-7 h-7" />
-                            </div>
-                            <span className="text-xs font-bold text-center text-slate-300">Locked</span>
-                        </div>
-                    ))}
-                </Card>
-            </section>
+                        ))}
+                    </Card>
+                </section>
+            )}
         </div>
     );
-}
-
-// Helper icon for this file
-function AlertCircleIcon({ className }: { className?: string }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-            <circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" />
-        </svg>
-    )
 }

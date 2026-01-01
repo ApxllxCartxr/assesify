@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Home, BookOpen, GraduationCap, Settings, User } from "lucide-react";
+import { Home, BookOpen, GraduationCap, Settings, User, BarChart3, LogOut } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useEffect, useState } from "react";
-import { getUser } from "@/lib/api";
+import { getUser, API_URL } from "@/lib/api";
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -13,10 +13,12 @@ function cn(...inputs: ClassValue[]) {
 
 export function Sidebar({ className }: { className?: string }) {
     const [isTeacher, setIsTeacher] = useState(false);
+    const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
-        const user = getUser();
-        if (user && user.is_teacher) {
+        const u = getUser();
+        setUser(u);
+        if (u && u.is_teacher) {
             setIsTeacher(true);
         }
     }, []);
@@ -24,7 +26,10 @@ export function Sidebar({ className }: { className?: string }) {
     const navItems = [
         { label: "Dashboard", href: "/dashboard", icon: Home, color: "text-brand-blue" },
         { label: "Learn", href: "/learn", icon: BookOpen, color: "text-brand-green" },
-        ...(isTeacher ? [{ label: "Teacher", href: "/teacher", icon: GraduationCap, color: "text-brand-red" }] : []),
+        ...(isTeacher ? [
+            { label: "Teacher", href: "/teacher", icon: GraduationCap, color: "text-brand-red" },
+            { label: "Analytics", href: "/analytics", icon: BarChart3, color: "text-brand-purple" }
+        ] : []),
         { label: "Profile", href: "/profile", icon: User, color: "text-brand-yellow" },
         { label: "Settings", href: "/settings", icon: Settings, color: "text-slate-400" },
     ];
@@ -58,6 +63,30 @@ export function Sidebar({ className }: { className?: string }) {
                     </Link>
                 ))}
             </nav>
+
+            <div className="mt-auto px-2 pb-4">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-zinc-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-zinc-800 overflow-hidden flex items-center justify-center font-bold text-slate-500">
+                        {user?.profile_pic ? (
+                            <img
+                                src={`${API_URL}/auth/avatars/${user.profile_pic.split('/').pop()}`}
+                                alt="U"
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            user?.full_name?.charAt(0) || "U"
+                        )}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                            {user?.full_name?.split(' ')[0] || "User"}
+                        </p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                            {isTeacher ? "Teacher Account" : "Student"}
+                        </p>
+                    </div>
+                </div>
+            </div>
         </aside>
     );
 }

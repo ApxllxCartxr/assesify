@@ -16,7 +16,6 @@ class Class(db.Model):
     code = db.Column(db.String(10), unique=True, nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
-    # Relationships
     teacher = db.relationship('User', backref='taught_classes', foreign_keys=[teacher_id])
     students = db.relationship('User', secondary=enrollments, backref=db.backref('enrolled_classes', lazy='dynamic'))
 

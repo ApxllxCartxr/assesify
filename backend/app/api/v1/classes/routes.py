@@ -14,22 +14,37 @@ def get_classes():
     if not user:
         return jsonify({"msg": "User not found"}), 404
 
-    # If teacher, show taught classes? For now let's just show enrolled classes for everyone
-    # or distinguish based on need. The requirement is "My Classes".
-    
     classes_data = []
+    seen_ids = set()
     
     # Add enrolled classes
     for cls in user.enrolled_classes:
-        classes_data.append({
-            "id": cls.id,
-            "name": cls.name,
-            "section": cls.section,
-            "teacher": cls.teacher.full_name,
-            "code": cls.code,
-            "progress": 0, # Placeholder for now
-            "color": "bg-brand-blue" # Placeholder
-        })
+        if cls.id not in seen_ids:
+            classes_data.append({
+                "id": cls.id,
+                "name": cls.name,
+                "section": cls.section,
+                "teacher": cls.teacher.full_name,
+                "code": cls.code,
+                "progress": 0, 
+                "color": "bg-brand-blue"
+            })
+            seen_ids.add(cls.id)
+
+    # Add taught classes if user is a teacher
+    if user.is_teacher:
+        for cls in user.taught_classes:
+            if cls.id not in seen_ids:
+                classes_data.append({
+                    "id": cls.id,
+                    "name": cls.name,
+                    "section": cls.section,
+                    "teacher": user.full_name,
+                    "code": cls.code,
+                    "progress": 0,
+                    "color": "bg-brand-purple"
+                })
+                seen_ids.add(cls.id)
         
     return jsonify(classes_data)
 

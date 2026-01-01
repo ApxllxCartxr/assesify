@@ -3,6 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from pydantic import ValidationError
 from app.models.users import db, User
 from app.schemas.teacher import InviteStudentSchema
+from app.models.lesson import Lesson
+from app.models.quiz import Quiz
 from werkzeug.utils import secure_filename
 import os
 import time
@@ -15,6 +17,60 @@ ALLOWED_EXTENSIONS = {"pdf", "txt", "docx"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 teacher_bp = Blueprint("teacher", __name__)
+
+@teacher_bp.route("/ping", methods=["GET"])
+def ping_teacher():
+    return jsonify({"msg": "Teacher API is working"}), 200
+
+@teacher_bp.route("/analytics", methods=["GET"])
+@jwt_required()
+def get_analytics():
+    try:
+        current_identity = get_jwt_identity()
+        if not current_identity:
+             return jsonify({"msg": "Invalid token identity"}), 401
+             
+        current_user_id = int(current_identity)
+        teacher = User.query.get(current_user_id)
+    
+        if not teacher or not teacher.is_teacher:
+            return jsonify({"msg": "Only teachers can access analytics"}), 403
+    
+        # Fetch lessons created by this teacher
+        lessons = Lesson.query.filter_by(teacher_id=current_user_id).all()
+        
+        analytics_data = []
+        
+        for lesson in lessons:
+            from app.models.submission import QuizAttempt
+            for quiz in lesson.quizzes:
+                attempts = QuizAttempt.query.filter_by(quiz_id=quiz.id).all()
+                
+                quiz_results = {
+                    "quiz_id": quiz.id,
+                    "lesson_title": lesson.title,
+                    "lesson_id": lesson.id,
+                    "topic": lesson.topic,
+                    "attempts_count": len(attempts),
+                    "students": []
+                }
+                
+                for att in attempts:
+                    quiz_results["students"].append({
+                        "student_name": att.user.full_name,
+                        "student_email": att.user.email,
+                        "score": att.score,
+                        "completed_at": att.completed_at.isoformat() if att.completed_at else None,
+                        "details": [a.to_dict() for a in att.answers]
+                    })
+                
+                analytics_data.append(quiz_results)
+    
+        return jsonify(analytics_data), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500
 
 @teacher_bp.route("/invite", methods=["POST"])
 @jwt_required()
@@ -50,74 +106,125 @@ def invite_student():
 @teacher_bp.route("/materials", methods=["POST"])
 # Note: this endpoint accepts uploads and processes them synchronously for now
 def upload_material():
-    # Allow authenticated teachers, but also accept anonymous uploads for quick dev testing
-    current_user_id = get_jwt_identity()
-    teacher = None
-    if current_user_id:
-        try:
-            teacher = User.query.get(int(current_user_id))
-        except Exception:
-            teacher = None
-
-    if "file" not in request.files:
-        return jsonify({"msg": "file is required"}), 400
-
-    file = request.files["file"]
-    filename = secure_filename(file.filename or "")
-    if not filename or "." not in filename:
-        return jsonify({"msg": "Invalid filename"}), 400
-
-    ext = filename.rsplit(".", 1)[1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        return jsonify({"msg": "Unsupported file type"}), 400
-
-    # Check file size
-    file.seek(0, os.SEEK_END)
-    size = file.tell()
-    file.seek(0)
-    if size > MAX_FILE_SIZE:
-        return jsonify({"msg": "File too large"}), 400
-
-    # Save file to backend/uploads
-    project_root = os.path.abspath(os.path.join(current_app.root_path, ".."))
-    uploads_dir = os.path.join(project_root, "uploads")
-    os.makedirs(uploads_dir, exist_ok=True)
-
-    timestamp = int(time.time())
-    saved_name = f"{(teacher.id if teacher else 'anon')}_{timestamp}_{filename}"
-    saved_path = os.path.join(uploads_dir, saved_name)
-    file.save(saved_path)
-
-    # Extract text based on extension
     try:
-        if ext == "pdf":
-            text = extract_text_from_pdf(saved_path)
-        elif ext == "txt":
-            with open(saved_path, "r", encoding="utf-8") as fh:
-                text = fh.read()
-        elif ext == "docx":
+        # Allow authenticated teachers, but also accept anonymous uploads for quick dev testing
+        from flask_jwt_extended import verify_jwt_in_request
+        current_user_id = None
+        try:
+            verify_jwt_in_request(optional=True)
+            current_user_id = get_jwt_identity()
+        except Exception:
+            pass # No valid token
+            
+        teacher = None
+        if current_user_id:
             try:
-                from docx import Document
-                doc = Document(saved_path)
-                text = "\n".join(p.text for p in doc.paragraphs)
+                teacher = User.query.get(int(current_user_id))
             except Exception:
-                return jsonify({"msg": "Could not read DOCX file (missing dependency)"}), 400
-        else:
-            text = ""
+                teacher = None
+
+        if "file" not in request.files:
+            return jsonify({"msg": "file is required"}), 400
+
+        file = request.files["file"]
+        filename = secure_filename(file.filename or "")
+        if not filename or "." not in filename:
+            return jsonify({"msg": "Invalid filename"}), 400
+
+        ext = filename.rsplit(".", 1)[1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            return jsonify({"msg": "Unsupported file type"}), 400
+
+        # Check file size
+        file.seek(0, os.SEEK_END)
+        size = file.tell()
+        file.seek(0)
+        if size > MAX_FILE_SIZE:
+            return jsonify({"msg": "File too large"}), 400
+
+        # Save file to backend/uploads
+        project_root = os.path.abspath(os.path.join(current_app.root_path, ".."))
+        uploads_dir = os.path.join(project_root, "uploads")
+        os.makedirs(uploads_dir, exist_ok=True)
+
+        timestamp = int(time.time())
+        saved_name = f"{(teacher.id if teacher else 'anon')}_{timestamp}_{filename}"
+        saved_path = os.path.join(uploads_dir, saved_name)
+        file.save(saved_path)
+
+        # Extract text based on extension
+        try:
+            if ext == "pdf":
+                text = extract_text_from_pdf(saved_path)
+            elif ext == "txt":
+                with open(saved_path, "r", encoding="utf-8") as fh:
+                    text = fh.read()
+            elif ext == "docx":
+                try:
+                    from docx import Document
+                    doc = Document(saved_path)
+                    text = "\n".join(p.text for p in doc.paragraphs)
+                except Exception:
+                    return jsonify({"msg": "Could not read DOCX file (missing dependency)"}), 400
+            else:
+                text = ""
+        except Exception as e:
+            return jsonify({"msg": f"Failed to extract text: {e}"}), 500
+
+        # Clean and chunk
+        cleaned = clean_text(text)
+        num_questions = int(request.form.get("numQuestions", request.form.get("num_questions", 10)))
+        difficulty = request.form.get("difficulty", "medium")
+        title = request.form.get("title", f"Quiz - {filename}")
+        subject = request.form.get("subject", "Uploaded Material") # New parameter
+        
+        # Chunk text to ensure we have enough context for Qs
+        # Adjust chunk size if we want more complex questions? 50 words is quite small. 
+        chunks = chunk_text(cleaned, max_words=150) # Increased context for better Qs
+        
+        # Generate quiz items up to num_questions
+        quiz_questions = []
+        # If chunks < num_questions, we might run out. We could loop or use overlapping chunks.
+        # For now, just generate as many as we can from chunks.
+        for c in chunks:
+            if len(c) < 50: continue # skip very short chunks
+            generated = generate_quiz(c, difficulty=difficulty)
+            quiz_questions.extend(generated)
+            if len(quiz_questions) >= num_questions:
+                break
+                
+        quiz_questions = quiz_questions[:num_questions]
+        
+        # SAVE TO DATABASE
+        # 1. Create Lesson
+        lesson = Lesson(
+            title=title,
+            content=cleaned, # Storing full text as lesson content
+            topic=subject,
+            file_path=saved_name,
+            class_id=None, # Optionally link to class if we had class_id in form
+            teacher_id=teacher.id if teacher else None
+        )
+        db.session.add(lesson)
+        db.session.commit()
+        
+        # 2. Create Quiz
+        quiz = Quiz(
+            lesson_id=lesson.id,
+            questions=quiz_questions
+        )
+        db.session.add(quiz)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Quiz generated and saved successfully",
+            "quiz_id": quiz.id, 
+            "lesson_id": lesson.id,
+            "title": lesson.title, 
+            "num_questions": len(quiz_questions)
+        }), 201
+
     except Exception as e:
-        return jsonify({"msg": f"Failed to extract text: {e}"}), 500
-
-    # Clean and chunk
-    cleaned = clean_text(text)
-    num_questions = int(request.form.get("numQuestions", request.form.get("num_questions", 10)))
-    chunks = chunk_text(cleaned, max_words=50)
-
-    # Generate quiz items up to num_questions
-    quiz = []
-    for c in chunks:
-        quiz.extend(generate_quiz(c))
-        if len(quiz) >= num_questions:
-            break
-    quiz = quiz[:num_questions]
-
-    return jsonify({"quiz": quiz, "title": request.form.get("title", ""), "num_questions": len(quiz)}), 201
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e), "trace": traceback.format_exc()}), 500

@@ -5,6 +5,7 @@ import { X, Upload, FileText, Check, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/Button";
 import { ProgressBar } from "@/components/ProgressBar";
 import { clsx } from "clsx";
+import api from "@/lib/api";
 
 interface TeacherUploadModalProps {
     isOpen: boolean;
@@ -21,6 +22,7 @@ export function TeacherUploadModal({ isOpen, onClose, className }: TeacherUpload
     // Mock Config State
     const [config, setConfig] = useState({
         title: "",
+        subject: "",
         difficulty: "medium",
         numQuestions: 10,
     });
@@ -53,12 +55,26 @@ export function TeacherUploadModal({ isOpen, onClose, className }: TeacherUpload
         }
     };
 
-    const simulateGeneration = () => {
+    const handleGenerate = async () => {
+        if (!file) return;
+
         setStep("generating");
-        // Mock API call time
-        setTimeout(() => {
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("title", config.title);
+            formData.append("subject", config.subject);
+            formData.append("difficulty", config.difficulty);
+            formData.append("numQuestions", config.numQuestions.toString());
+
+            await api.uploadMaterial(formData);
             setStep("success");
-        }, 2500);
+        } catch (err) {
+            console.error("Upload failed", err);
+            // Ideally show error state, for now just go back or stay
+            setStep("config");
+            alert("Failed to generate quiz. Please try again.");
+        }
     };
 
     const reset = () => {
@@ -147,6 +163,17 @@ export function TeacherUploadModal({ isOpen, onClose, className }: TeacherUpload
                                     />
                                 </div>
 
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Subject / Topic</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-transparent font-bold focus:border-brand-blue focus:outline-none"
+                                        placeholder="e.g. Biology"
+                                        value={config.subject}
+                                        onChange={(e) => setConfig({ ...config, subject: e.target.value })}
+                                    />
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Difficulty</label>
@@ -185,7 +212,7 @@ export function TeacherUploadModal({ isOpen, onClose, className }: TeacherUpload
 
                             <div className="flex gap-3">
                                 <Button variant="ghost" onClick={() => setStep("upload")} className="flex-1">Back</Button>
-                                <Button onClick={simulateGeneration} className="flex-1" disabled={!config.title}>
+                                <Button onClick={handleGenerate} className="flex-1" disabled={!config.title || !config.subject}>
                                     Generate Quiz
                                 </Button>
                             </div>

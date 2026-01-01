@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api";
+export const API_URL = "http://localhost:5002/api";
 
 export const storeToken = (token: string) => {
     if (typeof window !== "undefined") {
@@ -130,6 +130,57 @@ const api = {
 
     getProfile: async () => {
         const response = await fetch(`${API_URL}/auth/profile`, {
+            method: "GET",
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
+    uploadMaterial: async (formData: FormData) => {
+        const token = getToken();
+        // Do not set Content-Type header for FormData, let browser set boundary
+        const headers: any = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const response = await fetch(`${API_URL}/teacher/materials`, {
+            method: "POST",
+            headers,
+            body: formData,
+        });
+        return handleResponse(response);
+    },
+
+    getRecentQuizzes: async () => {
+        const response = await fetch(`${API_URL}/quizzes/recent`, {
+            method: "GET",
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
+    getLessons: async () => {
+        const response = await fetch(`${API_URL}/lessons/`, {
+            method: "GET",
+            headers: getHeaders(),
+        });
+        return handleResponse(response);
+    },
+
+    uploadAvatar: async (formData: FormData) => {
+        const token = getToken();
+        const headers: any = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const response = await fetch(`${API_URL}/auth/upload-avatar`, {
+            method: "POST",
+            headers,
+            body: formData,
+        });
+        return handleResponse(response);
+    },
+
+    getTeacherAnalytics: async () => {
+        const response = await fetch(`${API_URL}/teacher/analytics`, {
             method: "GET",
             headers: getHeaders(),
         });

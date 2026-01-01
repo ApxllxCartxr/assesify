@@ -1,187 +1,130 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { X, Heart, Flag } from "lucide-react";
-import { ProgressBar } from "@/components/ProgressBar";
+import { useEffect, useState } from "react";
+import { Search, BookOpen, Play, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/Button";
-import { clsx } from "clsx";
+import { Card } from "@/components/Card";
+import Link from "next/link";
+import api, { API_URL } from "@/lib/api";
+
+interface Lesson {
+    id: number;
+    title: string;
+    topic: string;
+    file_path: string;
+    created_at: string;
+}
 
 export default function LearnPage() {
-    const [selectedOption, setSelectedOption] = useState<number | null>(null);
-    const [status, setStatus] = useState<"idle" | "correct" | "incorrect" | "complete">("idle");
-    const [progress, setProgress] = useState(20);
-    const [stats, setStats] = useState({ xp: 0, accuracy: 100 });
+    const [lessons, setLessons] = useState<Lesson[]>([]);
+    const [search, setSearch] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
 
-    const question = {
-        text: "Which of the following describes the slope of a line?",
-        options: [
-            { id: 1, text: "Rise over Run", image: "📈" },
-            { id: 2, text: "Run over Rise", image: "📉" },
-            { id: 3, text: "Y-intercept", image: "📍" },
-            { id: 4, text: "The origin point", image: "⭕" },
-        ],
-        correctId: 1,
-    };
+    useEffect(() => {
+        const fetchLessons = async () => {
+            try {
+                const data = await api.getLessons();
+                setLessons(data);
+            } catch (err) {
+                console.error("Failed to fetch lessons", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchLessons();
+    }, []);
 
-    const handleCheck = () => {
-        if (selectedOption === null) return;
-
-        if (selectedOption === question.correctId) {
-            setStatus("correct");
-            setProgress((p) => Math.min(p + 20, 100));
-            setStats(s => ({ ...s, xp: s.xp + 10 }));
-        } else {
-            setStatus("incorrect");
-            setStats(s => ({ ...s, accuracy: 0 })); // Mock logic for demo
-        }
-    };
-
-    const handleNext = () => {
-        if (progress >= 100) {
-            setStatus("complete");
-        } else {
-            // Reset for next question mock
-            setStatus("idle");
-            setSelectedOption(null);
-        }
-    };
-
-    if (status === "complete") {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-black p-8 text-center animate-in zoom-in duration-500">
-                <div className="space-y-8 max-w-md w-full">
-                    <div className="space-y-4">
-                        <div className="w-32 h-32 bg-brand-yellow rounded-full mx-auto flex items-center justify-center text-6xl shadow-xl shadow-brand-yellow/20 animate-bounce">
-                            🏆
-                        </div>
-                        <h1 className="text-4xl font-bold font-geist text-slate-900 dark:text-white">
-                            Lesson Complete!
-                        </h1>
-                        <p className="text-slate-500 text-lg">You're making great progress.</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-brand-blue p-6 rounded-2xl text-white shadow-lg border-b-4 border-brand-blue-dark">
-                            <div className="mb-2 opacity-80 font-bold uppercase text-xs tracking-wider">Total XP</div>
-                            <div className="text-4xl font-bold font-geist">+ {stats.xp}</div>
-                        </div>
-                        <div className="bg-brand-green p-6 rounded-2xl text-white shadow-lg border-b-4 border-brand-green-dark">
-                            <div className="mb-2 opacity-80 font-bold uppercase text-xs tracking-wider">Accuracy</div>
-                            <div className="text-4xl font-bold font-geist">{stats.accuracy}%</div>
-                        </div>
-                    </div>
-
-                    <div className="pt-8">
-                        <Link href="/dashboard">
-                            <Button size="lg" className="w-full">
-                                Continue
-                            </Button>
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        )
-    }
+    const filteredLessons = lessons.filter(l =>
+        l.title.toLowerCase().includes(search.toLowerCase()) ||
+        l.topic.toLowerCase().includes(search.toLowerCase())
+    );
 
     return (
-        <div className="min-h-screen flex flex-col bg-white dark:bg-zinc-900">
+        <div className="max-w-5xl mx-auto space-y-10 pb-20">
             {/* Header */}
-            <header className="p-6 max-w-5xl mx-auto w-full flex items-center justify-between gap-6">
-                <Link href="/dashboard">
-                    <X className="w-6 h-6 text-slate-400 hover:text-slate-600 cursor-pointer" />
-                </Link>
-                <ProgressBar value={progress} className="flex-1" />
-                <div className="flex items-center gap-2 text-brand-red font-bold animate-pulse">
-                    <Heart className="w-6 h-6 fill-current" />
-                    <span>5</span>
-                </div>
-            </header>
-
-            {/* Question Content */}
-            <main className="flex-1 max-w-2xl mx-auto w-full p-6 flex flex-col justify-center gap-12">
-                <h1 className="text-3xl md:text-4xl font-bold font-geist text-center text-slate-800 dark:text-slate-100">
-                    {question.text}
+            <div className="space-y-4">
+                <h1 className="text-4xl font-black font-geist text-slate-900 dark:text-white mt-10">
+                    What do you want to learn today?
                 </h1>
+                <p className="text-slate-500 text-lg">
+                    Select a topic to review the materials or jump straight into a practice quiz.
+                </p>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {question.options.map((opt) => (
-                        <button
-                            key={opt.id}
-                            onClick={() => status === "idle" && setSelectedOption(opt.id)}
-                            disabled={status !== "idle"}
-                            className={clsx(
-                                "p-6 rounded-2xl border-2 border-b-4 text-left transition-all active:border-b-2 active:translate-y-[2px]",
-                                selectedOption === opt.id
-                                    ? "border-brand-blue-dark bg-brand-blue/10 ring-2 ring-brand-blue"
-                                    : "border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-zinc-800",
-                                status === 'correct' && opt.id === question.correctId && "bg-brand-green/20 border-brand-green text-brand-green ring-0",
-                                status === 'incorrect' && selectedOption === opt.id && opt.id === opt.id && "bg-brand-red/20 border-brand-red text-brand-red ring-0"
-                            )}
-                        >
-                            <span className="block text-4xl mb-4">{opt.image}</span>
-                            <span className="text-xl font-bold text-slate-700 dark:text-slate-200">{opt.text}</span>
-                        </button>
-                    ))}
+            {/* Search Bar */}
+            <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-purple transition-colors" />
+                <input
+                    type="text"
+                    placeholder="Search by topic, subject or title..."
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-zinc-900 focus:border-brand-purple outline-none transition-all shadow-sm"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+            </div>
+
+            {/* Lessons List */}
+            <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold font-geist">Available Topics ({filteredLessons.length})</h2>
                 </div>
-            </main>
 
-            {/* Footer Interface */}
-            <footer
-                className={clsx(
-                    "p-6 border-t-2 border-slate-200 dark:border-slate-800 sticky bottom-0 transition-colors duration-300",
-                    status === "correct" ? "bg-brand-green/10 border-brand-green/20" : "",
-                    status === "incorrect" ? "bg-brand-red/10 border-brand-red/20" : "bg-white dark:bg-zinc-900"
+                {isLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="h-32 bg-slate-100 dark:bg-zinc-800 animate-pulse rounded-2xl" />
+                        ))}
+                    </div>
+                ) : filteredLessons.length === 0 ? (
+                    <div className="text-center py-20 border-2 border-dashed border-slate-200 rounded-3xl">
+                        <p className="text-slate-500">No topics found matching your search.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {filteredLessons.map((lesson) => (
+                            <Card key={lesson.id} className="hover:border-brand-purple hover:shadow-xl transition-all group overflow-hidden border-2 border-slate-200 dark:border-slate-800" noPadding>
+                                <div className="p-6 space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-brand-purple px-2 py-0.5 bg-brand-purple/10 rounded-full">
+                                                {lesson.topic || "General"}
+                                            </span>
+                                            <h3 className="text-xl font-bold font-geist text-slate-900 dark:text-white group-hover:text-brand-purple transition-colors">
+                                                {lesson.title}
+                                            </h3>
+                                        </div>
+                                        <div className="w-12 h-12 bg-slate-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-slate-400">
+                                            <BookOpen className="w-6 h-6" />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
+                                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> 15m est.</span>
+                                        <span className="flex items-center gap-1">• Added {new Date(lesson.created_at).toLocaleDateString()}</span>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                        <Button
+                                            variant="outline"
+                                            className="flex-1"
+                                            onClick={() => window.open(`${API_URL}/lessons/${lesson.id}/file`, '_blank')}
+                                        >
+                                            <BookOpen className="w-4 h-4 mr-2" />
+                                            Review Notes
+                                        </Button>
+                                        <Link href={`/quiz/${lesson.id}`} className="flex-1">
+                                            <Button className="w-full bg-brand-green hover:bg-brand-green-dark text-white border-b-4 border-brand-green-dark">
+                                                <Play className="w-4 h-4 mr-2 fill-current" />
+                                                Start Quiz
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
                 )}
-            >
-                <div className="max-w-5xl mx-auto flex items-center justify-between">
-                    <div className="hidden md:block">
-                        {status === "correct" && (
-                            <div className="flex items-center gap-3 text-brand-green font-bold text-xl animate-bounce">
-                                <div className="w-10 h-10 bg-brand-green rounded-full flex items-center justify-center text-white">
-                                    <span className="text-2xl">✓</span>
-                                </div>
-                                <span>Nicely done!</span>
-                            </div>
-                        )}
-                        {status === "incorrect" && (
-                            <div className="flex items-center gap-3 text-brand-red font-bold text-xl animate-shake">
-                                <div className="w-10 h-10 bg-brand-red rounded-full flex items-center justify-center text-white">
-                                    <span className="text-2xl">✕</span>
-                                </div>
-                                <span>Correct answer: Rise over Run</span>
-                            </div>
-                        )}
-                        {status === "idle" && (
-                            <Button variant="ghost" size="sm" className="text-slate-400 hover:bg-transparent">
-                                <Flag className="w-4 h-4 mr-2" /> Report
-                            </Button>
-                        )}
-                    </div>
-
-                    <div className="w-full md:w-auto">
-                        {status === "idle" ? (
-                            <Button
-                                className="w-full md:w-40"
-                                size="lg"
-                                onClick={handleCheck}
-                                disabled={selectedOption === null}
-                            >
-                                Check
-                            </Button>
-                        ) : (
-                            <Button
-                                variant={status === "correct" ? "primary" : "danger"}
-                                className="w-full md:w-40"
-                                size="lg"
-                                onClick={handleNext}
-                            >
-                                Continue
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            </footer>
+            </div>
         </div>
     );
 }

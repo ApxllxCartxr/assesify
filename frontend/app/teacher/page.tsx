@@ -3,49 +3,39 @@
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Plus, Upload, Users, BarChart3, Folder, ChevronRight, MoreVertical } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TeacherUploadModal } from "@/components/TeacherUploadModal";
+import { CreateClassModal } from "@/components/CreateClassModal";
 import api, { getToken } from "@/lib/api";
+import Link from "next/link";
 
 export default function TeacherDashboard() {
     const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState("");
     const [inviteName, setInviteName] = useState("");
     const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+    const [classes, setClasses] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const classes = [
-        {
-            id: 1,
-            title: "Introduction to Computer Science",
-            code: "CS-101",
-            sections: [
-                { id: "A", students: 24, avgScore: 88 },
-                { id: "B", students: 22, avgScore: 82 }
-            ],
-            color: "bg-brand-blue"
-        },
-        {
-            id: 2,
-            title: "Advanced Calculus",
-            code: "MATH-202",
-            sections: [
-                { id: "A", students: 18, avgScore: 72 }
-            ],
-            color: "bg-brand-red"
-        },
-        {
-            id: 3,
-            title: "World History",
-            code: "HIST-110",
-            sections: [
-                { id: "A", students: 30, avgScore: 91 },
-                { id: "C", students: 28, avgScore: 89 }
-            ],
-            color: "bg-brand-yellow"
-        },
-    ];
+    const fetchClasses = async () => {
+        try {
+            const data = await api.getClasses();
+            // Filter only taught classes if getClasses returns both
+            // Actually our backend fix now returns taught classes for teachers
+            setClasses(data);
+        } catch (err) {
+            console.error("Failed to fetch classes", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchClasses();
+    }, []);
 
     const handleUploadClick = (classCode: string, sectionId: string) => {
         // In a real app we'd track exactly which section
@@ -75,6 +65,11 @@ export default function TeacherDashboard() {
     return (
         <div className="space-y-8 pb-20">
             <TeacherUploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} />
+            <CreateClassModal
+                isOpen={isCreateClassOpen}
+                onClose={() => setIsCreateClassOpen(false)}
+                onSuccess={fetchClasses}
+            />
 
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -88,7 +83,7 @@ export default function TeacherDashboard() {
                     <Button onClick={() => setIsInviteOpen((s) => !s)} variant={isInviteOpen ? "secondary" : undefined}>
                         Invite Student
                     </Button>
-                    <Button>
+                    <Button onClick={() => setIsCreateClassOpen(true)}>
                         <Plus className="w-5 h-5 mr-2" />
                         Create New Class
                     </Button>
@@ -119,74 +114,78 @@ export default function TeacherDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="p-4 flex flex-col gap-1" noPadding>
                     <span className="text-slate-500 text-xs font-bold uppercase">Total Students</span>
-                    <span className="text-2xl font-bold font-geist">122</span>
+                    <span className="text-2xl font-bold font-geist">-</span>
                 </Card>
                 <Card className="p-4 flex flex-col gap-1" noPadding>
                     <span className="text-slate-500 text-xs font-bold uppercase">Active Quizzes</span>
-                    <span className="text-2xl font-bold font-geist">8</span>
+                    <span className="text-2xl font-bold font-geist">-</span>
                 </Card>
                 <Card className="p-4 flex flex-col gap-1" noPadding>
                     <span className="text-slate-500 text-xs font-bold uppercase">Avg. Attendance</span>
-                    <span className="text-2xl font-bold font-geist">94%</span>
+                    <span className="text-2xl font-bold font-geist">-</span>
                 </Card>
                 <Card className="p-4 flex flex-col gap-1" noPadding>
                     <span className="text-slate-500 text-xs font-bold uppercase">Materials Uploaded</span>
-                    <span className="text-2xl font-bold font-geist">42</span>
+                    <span className="text-2xl font-bold font-geist">-</span>
                 </Card>
             </div>
 
             {/* Class Hierarchy */}
             <section className="space-y-6">
-                {classes.map((cls) => (
-                    <div key={cls.id} className="space-y-3">
-                        <div className="flex items-center gap-3">
-                            <div className={`w-3 h-8 rounded-full ${cls.color}`}></div>
-                            <h2 className="text-xl font-bold font-geist">{cls.title} <span className="text-slate-400 text-base font-normal">({cls.code})</span></h2>
-                            <Button variant="ghost" size="sm" className="ml-auto"><MoreVertical className="w-4 h-4" /></Button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ml-6">
-                            {cls.sections.map((section) => (
-                                <Card key={section.id} className="group hover:border-slate-400 transition-colors cursor-pointer p-5">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h3 className="font-bold font-geist text-lg flex items-center gap-2">
-                                                <Folder className="w-5 h-5 text-slate-400 fill-slate-100 dark:fill-slate-800" />
-                                                Section {section.id}
-                                            </h3>
-                                        </div>
-                                        <span className={`text-xs font-bold px-2 py-1 rounded bg-slate-100 dark:bg-zinc-800`}>
-                                            Avg: {section.avgScore}%
-                                        </span>
+                {isLoading ? (
+                    <div className="p-10 text-center text-slate-500">Loading classes...</div>
+                ) : classes.length === 0 ? (
+                    <div className="p-20 text-center border-2 border-dashed border-slate-200 rounded-2xl">
+                        <p className="text-slate-500 mb-4 font-bold">You haven't created any classes yet.</p>
+                        <Button onClick={() => setIsCreateClassOpen(true)}>Create Your First Class</Button>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {classes.map((cls) => (
+                            <Card key={cls.id} className="group hover:border-brand-blue transition-colors cursor-pointer p-6 relative overflow-hidden">
+                                <div className={`absolute top-0 left-0 w-1 h-full ${cls.color || 'bg-brand-blue'}`}></div>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{cls.section}</p>
+                                        <h3 className="font-bold font-geist text-xl flex items-center gap-2">
+                                            {cls.name}
+                                        </h3>
                                     </div>
+                                    <span className="text-xs font-black text-slate-400 font-mono">{cls.code}</span>
+                                </div>
 
-                                    <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
-                                        <span className="flex items-center gap-1"><Users className="w-4 h-4" /> {section.students} Students</span>
-                                        <span className="flex items-center gap-1"><BarChart3 className="w-4 h-4" /> High Perf.</span>
-                                    </div>
+                                <div className="flex items-center gap-4 text-sm text-slate-500 mb-6 font-bold">
+                                    <span className="flex items-center gap-1"><Users className="w-4 h-4" /> - Students</span>
+                                    <span className="flex items-center gap-1"><BarChart3 className="w-4 h-4" /> 0% Avg</span>
+                                </div>
 
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Button
-                                            size="sm"
-                                            variant="secondary"
-                                            className="w-full"
-                                            onClick={() => handleUploadClick(cls.code, section.id)}
-                                        >
-                                            <Upload className="w-4 h-4 mr-1" /> Material
-                                        </Button>
-                                        <Button size="sm" variant="outline" className="w-full">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        className="w-full font-bold"
+                                        onClick={() => handleUploadClick(cls.code, cls.section)}
+                                    >
+                                        <Upload className="w-4 h-4 mr-2" /> Material
+                                    </Button>
+                                    <Link href={`/analytics?classId=${cls.id}`} className="w-full">
+                                        <Button size="sm" variant="outline" className="w-full font-bold">
                                             Analytics
                                         </Button>
-                                    </div>
-                                </Card>
-                            ))}
-                            {/* Add Section Button */}
-                            <button className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex items-center justify-center text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-zinc-900 hover:border-slate-400 transition-all min-h-[160px]">
-                                + Add Section
-                            </button>
-                        </div>
+                                    </Link>
+                                </div>
+                            </Card>
+                        ))}
+                        {/* Add Section Button equivalent */}
+                        <button
+                            onClick={() => setIsCreateClassOpen(true)}
+                            className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-zinc-900 hover:border-brand-blue transition-all min-h-[200px] gap-2"
+                        >
+                            <Plus className="w-8 h-8" />
+                            <span>Create New Class</span>
+                        </button>
                     </div>
-                ))}
+                )}
             </section>
         </div>
     );

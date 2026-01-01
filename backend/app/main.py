@@ -14,9 +14,12 @@ from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from app.core.config import Config
 from app.models.users import db
+from app.models.submission import QuizAttempt, QuizAnswer
 from app.api.v1.auth.routes import auth_bp
 from app.api.v1.teacher.routes import teacher_bp
 from app.api.v1.classes.routes import classes_bp
+from app.api.v1.lessons.routes import lessons_bp
+from app.api.v1.quizzes.routes import quizzes_bp
 
 def create_app():
     app = Flask(__name__)
@@ -30,6 +33,8 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(teacher_bp, url_prefix="/api/teacher")
     app.register_blueprint(classes_bp, url_prefix="/api/classes")
+    app.register_blueprint(lessons_bp, url_prefix="/api/lessons")
+    app.register_blueprint(quizzes_bp, url_prefix="/api/quizzes")
 
     @app.route("/")
     def home():
