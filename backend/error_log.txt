@@ -1,0 +1,69 @@
+Error: (psycopg2.errors.StringDataRightTruncation) value too long for type character varying(128)
+
+[SQL: INSERT INTO users (email, full_name, password_hash, is_teacher, is_active, created_at) VALUES (%(email)s, %(full_name)s, %(password_hash)s, %(is_teacher)s, %(is_active)s, %(created_at)s) RETURNING users.id]
+[parameters: {'email': 'debug_v2@test.com', 'full_name': 'Debug User', 'password_hash': 'scrypt:32768:8:1$HIBtZTk3vJtxBstc$65bfc523faef16b7ebbe7d8763ba377414413f94a707a251c99004c676815eaf28abb685e30bf1c9315c08d5ab082806bf6e815ceeb161c5d6770a11b134a12a', 'is_teacher': False, 'is_active': True, 'created_at': datetime.datetime(2026, 1, 1, 10, 11, 13, 427578)}]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+Traceback (most recent call last):
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\engine\default.py", line 922, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.StringDataRightTruncation: value too long for type character varying(128)
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Project files\Projects\assesify\backend\debug_register.py", line 18, in debug_register
+    db.session.commit()
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\scoping.py", line 598, in commit
+    return self._proxied.commit()
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 1969, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\state_changes.py", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 1256, in commit
+    self._prepare_impl()
+  File "<string>", line 2, in _prepare_impl
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\state_changes.py", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 1231, in _prepare_impl
+    self.session.flush()
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4312, in flush
+    self._flush(objects)
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4447, in _flush
+    with util.safe_reraise():
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\session.py", line 4408, in _flush
+    flush_context.execute()
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\orm\persistence.py", line 1226, in _emit_insert_statements
+    result = connection.execute(
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1416, in execute
+    return meth(
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\sql\elements.py", line 516, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1639, in _execute_clauseelement
+    ret = self._execute_context(
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1848, in _execute_context
+    return self._exec_single_context(
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1988, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 2343, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\engine\base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Project files\Projects\assesify\backend\.venv\lib\site-packages\sqlalchemy\engine\default.py", line 922, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.DataError: (psycopg2.errors.StringDataRightTruncation) value too long for type character varying(128)
+
+[SQL: INSERT INTO users (email, full_name, password_hash, is_teacher, is_active, created_at) VALUES (%(email)s, %(full_name)s, %(password_hash)s, %(is_teacher)s, %(is_active)s, %(created_at)s) RETURNING users.id]
+[parameters: {'email': 'debug_v2@test.com', 'full_name': 'Debug User', 'password_hash': 'scrypt:32768:8:1$HIBtZTk3vJtxBstc$65bfc523faef16b7ebbe7d8763ba377414413f94a707a251c99004c676815eaf28abb685e30bf1c9315c08d5ab082806bf6e815ceeb161c5d6770a11b134a12a', 'is_teacher': False, 'is_active': True, 'created_at': datetime.datetime(2026, 1, 1, 10, 11, 13, 427578)}]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)

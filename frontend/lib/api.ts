@@ -44,7 +44,13 @@ const getHeaders = () => {
 
 const handleResponse = async (response: Response) => {
     if (!response.ok) {
-        const errorData = await response.json();
+        if (response.status === 401 || response.status === 422) {
+            removeToken();
+            if (typeof window !== "undefined") {
+                window.location.href = "/login";
+            }
+        }
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.msg || errorData.message || "API Error");
     }
     return response.json();

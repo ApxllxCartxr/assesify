@@ -4,6 +4,10 @@ import os
 # Add backend folder to sys.path so absolute imports work
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from dotenv import load_dotenv
+# Load .env from project root
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env'))
+
 from flask import Flask
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
